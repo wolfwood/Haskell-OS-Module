@@ -15,34 +15,64 @@ import Monad
 
 walk :: FilePath -> (FilePath -> Bool) -> IO [FilePath]
 walk d f = do
-  
+
   -- Set the current directory
   setCurrentDirectory d
-  
+
   -- Now get current directory
-  files <- getDirectoryContents d                                                  
-  
+  files <- getDirectoryContents d
+
   -- Filter out . and ..
   let files' = filter (\x -> x /= "." && x /= "..") files
-               
+
   -- Now run the user defined filter
   let files'' = filter f files'
-  
+
   -- Add the full path to the file names
-  let acc = map (d </>) files'' 
-               
+  let acc = map (d </>) files''
+
   -- Get just the sub-directories and start traversing them as well
   subd <- filterM (doesDirectoryExist) files'
-  
+
   -- Put the full path on the directories as well
   let subd' = map (d </>) subd
-              
+
   -- Perform the actual walk
   foo <- mapM (`walk` f) subd'
-  
-  let acc' = concat foo 
-      
-  return (acc' ++ acc)
-  
 
-  
+  let acc' = concat foo
+
+  return (acc' ++ acc)
+
+walkM :: FilePath -> (FilePath -> IO Bool) -> IO [FilePath]
+walkM d f = do
+
+  -- Set the current directory
+  setCurrentDirectory d
+
+  -- Now get current directory
+  files <- getDirectoryContents d
+
+  -- Filter out . and ..
+  let files' = filter (\x -> x /= "." && x /= "..") files
+
+  -- Now run the user defined filter
+  files'' <- filterM f files'
+
+  -- Add the full path to the file names
+  let acc = map (d </>) files''
+
+  -- Get just the sub-directories and start traversing them as well
+  subd <- filterM (doesDirectoryExist) files'
+
+  -- Put the full path on the directories as well
+  let subd' = map (d </>) subd
+
+  -- Perform the actual walk
+  foo <- mapM (`walkM` f) subd'
+
+  let acc' = concat foo
+
+  return (acc' ++ acc)
+
+
